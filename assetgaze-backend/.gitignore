@@ -1,0 +1,55 @@
+# Binaries
+[Dd]ebug/
+[Rr]elease/
+[Bb]in/
+[Oo]bj/
+
+# Rider
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Visual Studio
+.vs/
+*.suo
+*.user
+*.log
+*.pdb
+*.opendata
+*.VC.db
+*.VC.opendb
+
+# NuGet
+.nuget/
+*.nupkg
+*.snupkg
+*.dll
+*.exe
+
+# Test Results
+TestResults/
+*.trx
+*.coverage
+*.coveragexml
+
+# Database files (if any local ones)
+*.mdf
+*.ldf
+*.sdf
+
+# User-specific files
+*.bak
+*.tmp
+*.userprefs
+
+# Docker
+# The .dockerignore in your backend is good, but if you have any top-level Docker ignores, add them here.
+# For example, if docker-compose.yml is at root, and you want to ignore certain volumes.
+# volumes/
+
+# Other common ignores
+node_modules/ # For frontend
+npm-debug.log
+yarn-error.log
+.DS_Store # macOS specific

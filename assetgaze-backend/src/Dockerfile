@@ -5,12 +5,12 @@ WORKDIR /app
 
 # Copy the .csproj file and restore dependencies first.
 # This is a clever optimization. As long as your .csproj doesn't change, Docker will use a cached layer here, speeding up future builds.
-COPY src/Assetgaze/*.csproj ./Assetgaze/
-RUN dotnet restore ./Assetgaze/Assetgaze.csproj
+COPY src/*.csproj ./
+RUN dotnet restore ./assetgaze-backend.csproj
 
 # Copy the rest of the source code for all projects
 COPY src/. ./
-WORKDIR /app/Assetgaze
+WORKDIR /app
 
 # Build and publish the release version of your API project.
 # The --no-restore flag is used because we already restored dependencies in the previous step.
@@ -33,4 +33,4 @@ EXPOSE 8080
 
 # Entrypoint defines the command that will run when the container starts.
 # This executes your compiled application DLL.
-ENTRYPOINT ["dotnet", "Assetgaze.dll"]
+ENTRYPOINT ["dotnet", "Assetgaze.Backend.dll"]

@@ -7,7 +7,7 @@ services:
     container_name: assetgaze-api # A friendly name for our API container
     build:
       context: . # The build context is the current directory (the project root)
-      dockerfile: src/Assetgaze/Dockerfile # The path to the Dockerfile we created
+      dockerfile: src/Dockerfile # The path to the Dockerfile we created
     ports:
       - "5001:8080"
       - "5002:8081" # Kestrel is configured in code to listen on 8081 for HTTPS

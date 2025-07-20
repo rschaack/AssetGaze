@@ -8,11 +8,13 @@ namespace Assetgaze.Backend.Features.Users;
 
 public class AuthService : IAuthService
 {
+    private readonly ILogger<AuthService> _logger;
     private readonly IUserRepository _userRepository;
     private readonly IConfiguration _configuration;
 
-    public AuthService(IUserRepository userRepository, IConfiguration configuration)
+    public AuthService(ILogger<AuthService> logger, IUserRepository userRepository, IConfiguration configuration)
     {
+        _logger = logger;
         _userRepository = userRepository;
         _configuration = configuration;
     }
@@ -45,10 +47,15 @@ public class AuthService : IAuthService
 
     public async Task<string?> LoginAsync(LoginRequest request)
     {
+        _logger.LogInformation("Login attempt for email: {Email}", request.Email);
+        _logger.LogInformation("Password provided (first char): {PasswordFirstChar}", request.Password?.Length > 0 ? request.Password[0] : "N/A");
+        _logger.LogInformation("Password length: {PasswordLength}", request.Password?.Length);
+
+        
         // Find the user by email
         var user = await _userRepository.GetByEmailAsync(request.Email);
         if (user == null) { return null; }
-
+        
         if (user.LockoutEndDateUtc.HasValue && user.LockoutEndDateUtc.Value > DateTime.UtcNow)
         { return null; }
         

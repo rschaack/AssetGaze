@@ -1,4 +1,5 @@
 using Assetgaze.Backend.Features.Users.DTOs;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Assetgaze.Backend.Features.Users;
@@ -29,8 +30,10 @@ public class AuthController : Controller
     }
     
     [HttpPost("login")] // This maps to the URL: POST /api/auth/login
+    [AllowAnonymous]
     public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {
+        
         var token = await _authService.LoginAsync(request);
 
         if (token is null)

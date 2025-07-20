@@ -20,7 +20,9 @@ namespace Assetgaze.Backend.Features.Users
         public async Task<User?> GetByEmailAsync(string email)
         {
             await using var db = new AppDataConnection(_connectionString);
-            return await db.Users.FirstOrDefaultAsync(u => u.Email.Equals(email, StringComparison.OrdinalIgnoreCase));
+            return await db.Users
+                .Where(u => u.Email.ToLower() == email.ToLower()) // Corrected comparison
+                .FirstOrDefaultAsync();
         }
 
         public async Task AddAsync(User user)

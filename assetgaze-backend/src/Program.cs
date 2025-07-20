@@ -53,7 +53,7 @@ builder.Services.AddCors(options =>
                           // IMPORTANT: Replace 'http://localhost:4200' with the actual URL
                           // where your Angular app is running.
                           // For production, list your production frontend URL(s).
-                          policy.WithOrigins("http://localhost:4200")
+                          policy.WithOrigins("https://localhost:4200")
                                 .AllowAnyHeader()    // Allows all headers from the client
                                 .AllowAnyMethod()   // Allows all HTTP methods (GET, POST, PUT, DELETE, etc.)
                                 .AllowCredentials(); // Use this if you are sending cookies or authentication headers

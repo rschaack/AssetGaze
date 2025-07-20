@@ -26,6 +26,9 @@
             ],
             "styles": [
               "src/styles.css"
+            ],
+            "externalDependencies": [
+              "@tailwindcss/cli"
             ]
           },
           "configurations": {
@@ -62,7 +65,10 @@
               "buildTarget": "assetgaze-frontend:build:development"
             }
           },
-          "defaultConfiguration": "development"
+          "defaultConfiguration": "development",
+          "options": {
+            "ssl": true
+          }
         },
         "extract-i18n": {
           "builder": "@angular/build:extract-i18n"

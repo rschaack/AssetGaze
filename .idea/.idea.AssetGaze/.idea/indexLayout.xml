@@ -1,8 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="UserContentModel">
-    <attachedFolders />
-    <explicitIncludes />
+    <attachedFolders>
+      <Path>assetgaze-frontend</Path>
+    </attachedFolders>
+    <explicitIncludes>
+      <Path>assetgaze-backend/.dockerignore</Path>
+      <Path>assetgaze-backend/.gitignore</Path>
+      <Path>assetgaze-backend/docker-compose.yml</Path>
+      <Path>assetgaze-frontend</Path>
+    </explicitIncludes>
     <explicitExcludes />
   </component>
 </project>

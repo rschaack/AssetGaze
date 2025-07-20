@@ -11,6 +11,8 @@ using Assetgaze.Backend.Middleware;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Serilog;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Antiforgery;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -53,13 +55,22 @@ builder.Services.AddCors(options =>
                           // For production, list your production frontend URL(s).
                           policy.WithOrigins("http://localhost:4200")
                                 .AllowAnyHeader()    // Allows all headers from the client
-                                .AllowAnyMethod();   // Allows all HTTP methods (GET, POST, PUT, DELETE, etc.)
-                                // .AllowCredentials(); // Use this if you are sending cookies or authentication headers
+                                .AllowAnyMethod()   // Allows all HTTP methods (GET, POST, PUT, DELETE, etc.)
+                                .AllowCredentials(); // Use this if you are sending cookies or authentication headers
                                                       // Note: AllowAnyOrigin() and AllowCredentials() cannot be used together.
                                                       // If you need credentials, you must specify explicit origins.
                       });
 });
 // --- END CORS Configuration ---
+
+builder.Services.AddAntiforgery(options =>
+{
+    options.HeaderName = "X-XSRF-TOKEN"; // The header name Angular expects by default
+    options.Cookie.Name = "XSRF-TOKEN";  // The cookie name Angular expects by default
+    options.Cookie.HttpOnly = false;     // Must be false so JavaScript can read it
+    options.Cookie.SecurePolicy = CookieSecurePolicy.Always; // Only send over HTTPS
+    options.Cookie.SameSite = SameSiteMode.Lax; // Match SameSite of access_token cookie
+});
 
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
@@ -93,6 +104,8 @@ if (!string.IsNullOrEmpty(connectionString))
 {
     MigrationManager.ApplyMigrations(connectionString);
 }
+
+app.UseAntiforgery();
 
 // --- START CORS Middleware Usage ---
 // Use the CORS policy. This must be placed after UseRouting() (implicitly handled by MapControllers)

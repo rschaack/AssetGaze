@@ -1,6 +1,15 @@
-using Assetgaze.Backend.Features.Users;
-using Assetgaze.Backend.Features.Users.DTOs;
+// In: tests/Assetgaze.Tests/Features/Users/AuthServiceTests.cs
+
+// Ensure these using directives are correct for your project structure
+using Assetgaze.Backend.Features.Users; // For IAuthService, AuthService, IUserRepository, User
+using Assetgaze.Backend.Features.Users.DTOs; // For LoginRequest, RegisterRequest, UserAccountPermission
 using Microsoft.Extensions.Configuration;
+using NUnit.Framework; // For TestFixture, SetUp, Test, Assert
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Logging; // Added for ILogger
+using Microsoft.Extensions.Logging.Abstractions; // Added for NullLogger
 
 namespace Assetgaze.Backend.Tests.Features.Users;
 
@@ -12,6 +21,7 @@ public class AuthServiceTests
     private IAuthService _authService = null!;
     private const string TestPassword = "Password123!";
     private string _hashedPassword = null!;
+    // Removed Mock<ILogger<AuthService>> _mockLogger;
 
     [SetUp]
     public void SetUp()
@@ -29,20 +39,29 @@ public class AuthServiceTests
             .AddInMemoryCollection(inMemorySettings)
             .Build();
         
-        _authService = new AuthService(_fakeUserRepo, _fakeConfiguration);
+        // Pass NullLogger<AuthService>.Instance as the third argument to the AuthService constructor
+        _authService = new AuthService(NullLogger<AuthService>.Instance, _fakeUserRepo, _fakeConfiguration);
     }
 
     // --- Registration Tests (from before) ---
     [Test]
     public async Task RegisterAsync_WithNewEmail_ShouldAddUserAndReturnTrue()
     {
-        // ... (this test remains the same)
+        var request = new RegisterRequest { Email = "newuser@example.com", Password = TestPassword };
+        var result = await _authService.RegisterAsync(request);
+        Assert.That(result, Is.True);
+        Assert.That(_fakeUserRepo.Users.Count, Is.EqualTo(1));
+        Assert.That(_fakeUserRepo.Users[0].Email, Is.EqualTo("newuser@example.com"));
     }
 
     [Test]
     public async Task RegisterAsync_WithExistingEmail_ShouldNotAddUserAndReturnFalse()
     {
-        // ... (this test remains the same)
+        _fakeUserRepo.Users.Add(new User { Email = "existing@example.com", PasswordHash = _hashedPassword });
+        var request = new RegisterRequest { Email = "existing@example.com", Password = TestPassword };
+        var result = await _authService.RegisterAsync(request);
+        Assert.That(result, Is.False);
+        Assert.That(_fakeUserRepo.Users.Count, Is.EqualTo(1)); // Still only one user
     }
 
     // --- NEW LOGIN AND LOCKOUT TESTS ---

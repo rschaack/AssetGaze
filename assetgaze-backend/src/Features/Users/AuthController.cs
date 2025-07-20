@@ -1,4 +1,5 @@
 using Assetgaze.Backend.Features.Users.DTOs;
+using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -9,10 +10,12 @@ namespace Assetgaze.Backend.Features.Users;
 public class AuthController : Controller
 {
     private readonly IAuthService _authService;
+    private readonly IAntiforgery _antiforgery;
 
-    public AuthController(IAuthService authService)
+    public AuthController(IAuthService authService, IAntiforgery antiforgery)
     {
         _authService = authService;
+        _antiforgery = antiforgery;
     }
     
     [HttpPost("register")] // This maps to the URL: POST /api/auth/register
@@ -33,14 +36,32 @@ public class AuthController : Controller
     [AllowAnonymous]
     public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {
-        
-        var token = await _authService.LoginAsync(request);
+        var token = await _authService.LoginAsync(request); // This should return the JWT string
 
         if (token is null)
         {
             return Unauthorized("Invalid email or password.");
         }
 
-        return Ok(new { Token = token });
+        // --- START: Secure Token Handling Changes ---
+
+        // 1. Set the JWT (Access Token) in an HTTP-only, Secure, SameSite=Lax cookie
+        Response.Cookies.Append("access_token", token, new CookieOptions
+        {
+            HttpOnly = true,       // Prevents JavaScript from accessing the cookie (XSS protection)
+            Secure = true,         // Only send over HTTPS
+            SameSite = SameSiteMode.Lax, // Recommended for CSRF mitigation, allows GET from other sites
+            // but requires POST to be same-site or have CSRF token
+            Expires = DateTime.UtcNow.AddMinutes(30) // Set appropriate expiration for your access token
+        });
+
+        // 2. Generate and return an Anti-Forgery Token (CSRF Token) in the response body
+        // The frontend will read this and send it back in a custom header on subsequent POST/PUT/DELETE requests.
+        var tokens = _antiforgery.GetAndStoreTokens(HttpContext);
+        
+        // Return the CSRF token in the response body
+        return Ok(new LoginResponse { CsrfToken = tokens.RequestToken! });
+
+        // --- END: Secure Token Handling Changes ---
     }
 }

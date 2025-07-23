@@ -1,46 +1,60 @@
 // assetgaze-frontend/src/app/auth/auth.service.ts
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, tap, catchError, throwError } from 'rxjs';
+import { Observable, tap, catchError, throwError, of, map, BehaviorSubject } from 'rxjs';
 import { Router } from '@angular/router';
 
 interface LoginResponse {
-  csrfToken: string; // Backend now returns the CSRF token in the body
-  // Add other non-sensitive user data here if your backend sends it
+  csrfToken: string;
 }
 
 @Injectable({
   providedIn: 'root'
 })
 export class AuthService {
-  private loginUrl = 'https://localhost:5002/api/auth/login'; // Your C# backend login endpoint
+  private loginUrl = 'https://localhost:5002/api/auth/login';
+  private statusUrl = 'https://localhost:5002/api/auth/status';
+  private logoutUrl = 'https://localhost:5002/api/auth/logout';
 
-  constructor(private http: HttpClient, private router: Router) { }
+  private _isAuthenticatedSubject = new BehaviorSubject<boolean>(false);
+  public isAuthenticated$ = this._isAuthenticatedSubject.asObservable();
 
-  /**
-   * Sends login credentials to the backend.
-   * The JWT (access_token) will be set in an HTTP-only cookie by the backend.
-   * The CSRF token will be returned in the response body.
-   * @param credentials An object containing email and password.
-   * @returns An Observable of the LoginResponse containing the CSRF token.
-   */
+  constructor(private http: HttpClient, private router: Router) {
+    this.checkAuthStatusOnAppLoad();
+  }
+
+  private checkAuthStatusOnAppLoad(): void {
+    this.http.get(this.statusUrl, { withCredentials: true }).pipe(
+      map(() => true),
+      catchError(() => of(false))
+    ).subscribe(isAuthenticated => {
+      this._isAuthenticatedSubject.next(isAuthenticated);
+      if (!isAuthenticated && !this.router.url.includes('/login')) {
+        this.router.navigate(['/login']);
+      }
+    });
+  }
+
+  public setAuthenticatedState(state: boolean): void {
+    this._isAuthenticatedSubject.next(state);
+  }
+
   login(credentials: { email: string; password: string }): Observable<LoginResponse> {
     const payload = {
-      email: credentials.email, // Ensure this matches your C# LoginRequest DTO
+      email: credentials.email,
       password: credentials.password
     };
 
-    // The 'withCredentials: true' option is crucial to send cookies (including HTTP-only ones)
-    // with cross-origin requests.
     return this.http.post<LoginResponse>(this.loginUrl, payload, { withCredentials: true }).pipe(
       tap(response => {
-        // We no longer store the JWT in localStorage.
-        // The CSRF token is received here, but the HTTP Interceptor will handle its usage.
-        console.log('Login successful. CSRF Token received:', response.csrfToken);
-        // You might store other non-sensitive user data from the response if needed.
+        // --- LOGGING ---
+        console.log('AuthService: Login successful. CSRF Token received in response body:', response.csrfToken);
+        // --- END LOGGING ---
+        this.setAuthenticatedState(true);
       }),
       catchError(error => {
-        console.error('Login failed:', error);
+        console.error('AuthService: Login failed:', error);
+        this.setAuthenticatedState(false);
         let errorMessage = 'An unknown error occurred during login.';
         if (error.status === 401) {
           errorMessage = 'Invalid email or password.';
@@ -54,35 +68,32 @@ export class AuthService {
     );
   }
 
-  /**
-   * Checks if the user is authenticated. With HTTP-only cookies, we can't directly
-   * read the access token. This method now relies on a backend endpoint that
-   * checks cookie validity, or a simple check for a 'logged in' state if you store it.
-   * For now, it's a placeholder. A real implementation might hit a /api/auth/status endpoint.
-   * @returns boolean - true if authenticated, false otherwise.
-   */
-  isAuthenticated(): boolean {
-    // With HTTP-only cookies, we cannot directly read the 'authToken' from localStorage.
-    // A robust solution would involve:
-    // 1. Making a small, authorized request to a backend endpoint (e.g., /api/auth/status)
-    //    that checks the cookie and returns a boolean or user info.
-    // 2. Storing a simple 'loggedIn' flag in sessionStorage (less secure, but better than localStorage for JWT itself)
-    //    that gets set on successful login and cleared on logout/refresh.
-    // For now, we'll assume the presence of a CSRF token (if you want to use it for this check).
-    // A more accurate check would be to try an authenticated API call.
-    return true; // Placeholder: You'll need a real check here.
+  checkBackendAuthStatus(): Observable<boolean> {
+    return this.http.get(this.statusUrl, { withCredentials: true }).pipe(
+      map(() => {
+        this.setAuthenticatedState(true);
+        return true;
+      }),
+      catchError(() => {
+        this.setAuthenticatedState(false);
+        return of(false);
+      })
+    );
   }
 
-  /**
-   * Logs out the user. This will typically involve a backend call to clear the cookie.
-   */
   logout(): void {
-    // In a secure setup, you'd make a backend call to invalidate the session/cookie.
-    // For now, we'll just navigate. The browser will eventually clear the cookie.
-    // If you had a refresh token, you'd send it to the backend to revoke.
-    console.log('Logging out...');
-    this.router.navigate(['/login']);
+    this.http.post(this.logoutUrl, {}, { withCredentials: true }).pipe(
+      tap(() => {
+        console.log('AuthService: Logout successful.');
+        this.setAuthenticatedState(false);
+        this.router.navigate(['/login']);
+      }),
+      catchError(error => {
+        console.error('AuthService: Logout failed:', error);
+        this.setAuthenticatedState(false);
+        this.router.navigate(['/login']);
+        return throwError(() => new Error('Logout failed.'));
+      })
+    ).subscribe();
   }
-
-  // getToken() method is removed as we no longer access the token directly from JS.
 }

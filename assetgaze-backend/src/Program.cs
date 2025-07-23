@@ -78,6 +78,8 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
     });
 
+builder.Services.AddLogging();
+
 // Transaction Feature
 builder.Services.AddScoped<ITransactionRepository, Linq2DbTransactionRepository>();
 builder.Services.AddScoped<ITransactionService, TransactionService>();

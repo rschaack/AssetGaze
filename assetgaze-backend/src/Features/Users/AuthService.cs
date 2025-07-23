@@ -95,7 +95,7 @@ public class AuthService : IAuthService
         var tokenHandler = new JwtSecurityTokenHandler();
         
         // Get the secret key from appsettings.json
-        var key = Encoding.ASCII.GetBytes(_configuration["Jwt:Key"]!);
+        var key = Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]!);
 
         // Define the token's claims (the data it will hold)
         var claims = new List<Claim>

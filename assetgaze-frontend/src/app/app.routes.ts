@@ -1,9 +1,11 @@
 // assetgaze-frontend/src/app/app.routes.ts
 import { Routes } from '@angular/router';
-import { LoginComponent } from './login/login.component'; // Import your new login component
+import { Login } from './login/login'; // Import your new login component
+import { Dashboard } from './dashboard/dashboard';
 
 export const routes: Routes = [
-  { path: 'login', component: LoginComponent },
+  { path: 'login', component: Login },
+  { path: 'dashboard', component: Dashboard },
   { path: '', redirectTo: '/login', pathMatch: 'full' }, // Redirects to /login when the app starts
   // Add other routes for your application here (e.g., dashboard, home)
   // { path: 'dashboard', component: DashboardComponent },

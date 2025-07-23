@@ -1,67 +1,122 @@
-using Assetgaze.Backend.Features.Users.DTOs;
-using Microsoft.AspNetCore.Antiforgery;
-using Microsoft.AspNetCore.Authorization;
+// assetgaze-backend/src/Assetgaze.Backend/Features/Users/AuthController.cs
+// (Integrate these new methods into your existing AuthController)
+
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Antiforgery;
+using Microsoft.AspNetCore.Http;
+using System.Security.Claims;
+using Assetgaze.Backend.Features.Users.DTOs;
+using Microsoft.Extensions.Logging; // Added for ILogger
 
 namespace Assetgaze.Backend.Features.Users;
 
 [ApiController]
-[Route("api/[controller]")] // This will make the URL /api/auth
+[Route("api/[controller]")]
 public class AuthController : Controller
 {
     private readonly IAuthService _authService;
     private readonly IAntiforgery _antiforgery;
+    private readonly ILogger<AuthController> _logger; // Added ILogger
 
-    public AuthController(IAuthService authService, IAntiforgery antiforgery)
+    public AuthController(IAuthService authService, IAntiforgery antiforgery, ILogger<AuthController> logger) // Inject ILogger
     {
         _authService = authService;
         _antiforgery = antiforgery;
+        _logger = logger; // Assign logger
     }
     
-    [HttpPost("register")] // This maps to the URL: POST /api/auth/register
+    [HttpPost("register")]
     public async Task<IActionResult> Register([FromBody] RegisterRequest request)
     {
         var wasRegistrationSuccessful = await _authService.RegisterAsync(request);
 
         if (!wasRegistrationSuccessful)
         {
-            // We use a general message to avoid confirming whether an email is already registered.
             return BadRequest("Registration failed. An account with this email may already exist.");
         }
 
         return Ok("User registered successfully.");
     }
     
-    [HttpPost("login")] // This maps to the URL: POST /api/auth/login
+    [HttpPost("login")]
     [AllowAnonymous]
     public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {
-        var token = await _authService.LoginAsync(request); // This should return the JWT string
+        var token = await _authService.LoginAsync(request);
 
         if (token is null)
         {
             return Unauthorized("Invalid email or password.");
         }
 
-        // --- START: Secure Token Handling Changes ---
-
-        // 1. Set the JWT (Access Token) in an HTTP-only, Secure, SameSite=Lax cookie
         Response.Cookies.Append("access_token", token, new CookieOptions
         {
-            HttpOnly = true,       // Prevents JavaScript from accessing the cookie (XSS protection)
-            Secure = true,         // Only send over HTTPS
-            SameSite = SameSiteMode.Lax, // Recommended for CSRF mitigation, allows GET from other sites
-            // but requires POST to be same-site or have CSRF token
-            Expires = DateTime.UtcNow.AddMinutes(30) // Set appropriate expiration for your access token
+            HttpOnly = true,
+            Secure = true, // Ensure this is true for HTTPS
+            SameSite = SameSiteMode.Lax,
+            Expires = DateTime.UtcNow.AddMinutes(30) // Access token expiration
         });
 
-        // 2. Generate and return an Anti-Forgery Token (CSRF Token) in the response body
-        // The frontend will read this and send it back in a custom header on subsequent POST/PUT/DELETE requests.
-        var tokens = _antiforgery.GetAndStoreTokens(HttpContext);
+        var antiforgeryToken = _antiforgery.GetAndStoreTokens(HttpContext).RequestToken;
         
-        // Return the CSRF token in the response body
-        return Ok(new LoginResponse { CsrfToken = tokens.RequestToken! });
+        // --- LOGGING ---
+        _logger.LogInformation("Login: Generated Anti-Forgery Token: {AntiforgeryToken}", antiforgeryToken);
+        // --- END LOGGING ---
 
-        // --- END: Secure Token Handling Changes ---
+        Response.Cookies.Append("XSRF-TOKEN", antiforgeryToken!, new CookieOptions
+        {
+            HttpOnly = false,
+            Secure = true,
+            SameSite = SameSiteMode.Lax,
+            Expires = DateTime.UtcNow.AddMinutes(30)
+        });
+        
+        return Ok(new LoginResponse { CsrfToken = antiforgeryToken! });
+    }
+
+    [HttpGet("status")]
+    [Authorize]
+    public IActionResult GetAuthStatus()
+    {
+        return Ok(new { isAuthenticated = true, message = "User is authenticated." });
+    }
+
+    [HttpPost("logout")]
+    [Authorize]
+    public IActionResult Logout()
+    {
+        Response.Cookies.Append("access_token", "", new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = true,
+            SameSite = SameSiteMode.Lax,
+            Expires = DateTime.UtcNow.AddDays(-1)
+        });
+
+        Response.Cookies.Append("XSRF-TOKEN", "", new CookieOptions
+        {
+            HttpOnly = false,
+            Secure = true,
+            SameSite = SameSiteMode.Lax,
+            Expires = DateTime.UtcNow.AddDays(-1)
+        });
+
+        return Ok(new { message = "Logged out successfully." });
+    }
+
+    [HttpPost("protected-data")]
+    [Authorize]
+    [ValidateAntiForgeryToken]
+    public IActionResult PostProtectedData([FromBody] object data)
+    {
+        // --- LOGGING ---
+        var requestToken = HttpContext.Request.Headers["X-XSRF-TOKEN"].FirstOrDefault();
+        var cookieToken = HttpContext.Request.Cookies["XSRF-TOKEN"];
+        _logger.LogInformation("ProtectedData: Request Header X-XSRF-TOKEN: {RequestToken}", requestToken);
+        _logger.LogInformation("ProtectedData: Request Cookie XSRF-TOKEN: {CookieToken}", cookieToken);
+        // --- END LOGGING ---
+
+        return Ok(new { message = "Data received and authorized with CSRF!", receivedData = data });
     }
 }

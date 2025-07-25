@@ -10,10 +10,10 @@ import {
 import { Observable, throwError } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { Router } from '@angular/router';
-import { AuthService } from '../../auth/auth.service'; // Import AuthService
+import { AuthService } from '../../auth/auth.service';
 
 @Injectable()
-export class ErrorInterceptor implements HttpInterceptor {
+export class ErrorInterceptor implements HttpInterceptor { // Ensure 'export' keyword is present
 
   constructor(private router: Router, private injector: Injector) {}
 
@@ -23,7 +23,7 @@ export class ErrorInterceptor implements HttpInterceptor {
         if (error.status === 401) {
           const authService = this.injector.get(AuthService);
           console.warn('401 Unauthorized response caught by ErrorInterceptor. Redirecting to login.');
-          // Call the public setter method on AuthService
+          localStorage.removeItem('authToken'); // Ensure token is removed
           authService.setAuthenticatedState(false);
           this.router.navigate(['/login']);
         } else if (error.status === 403) {

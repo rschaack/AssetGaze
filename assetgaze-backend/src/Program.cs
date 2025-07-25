@@ -12,7 +12,6 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Serilog;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Antiforgery;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -36,7 +35,7 @@ builder.Services.AddAuthentication(options =>
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!)),
         ValidateIssuer = true,
         ValidateAudience = true,
-        ValidateLifetime = false,
+        ValidateLifetime = true,
         ValidateIssuerSigningKey = true
     };
 });
@@ -47,30 +46,17 @@ builder.Services.AddAuthorization();
 builder.Services.AddCors(options =>
 {
     options.AddPolicy(name: MyAllowSpecificOrigins,
-                      policy =>
-                      {
-                          // Allow requests from your Angular frontend's development server.
-                          // IMPORTANT: Replace 'http://localhost:4200' with the actual URL
-                          // where your Angular app is running.
-                          // For production, list your production frontend URL(s).
-                          policy.WithOrigins("https://localhost:4200")
-                                .AllowAnyHeader()    // Allows all headers from the client
-                                .AllowAnyMethod()   // Allows all HTTP methods (GET, POST, PUT, DELETE, etc.)
-                                .AllowCredentials(); // Use this if you are sending cookies or authentication headers
-                                                      // Note: AllowAnyOrigin() and AllowCredentials() cannot be used together.
-                                                      // If you need credentials, you must specify explicit origins.
-                      });
+        policy =>
+        {
+            // Allow credentials is not strictly needed if no cookies are sent,
+            // but keeping WithOrigins is good practice.
+            policy.WithOrigins("https://localhost:4200") // Your Angular frontend URL
+                .AllowAnyHeader()    // Allows all headers from the client
+                .AllowAnyMethod();   // Allows all HTTP methods (GET, POST, PUT, DELETE, etc.)
+            // Removed: .AllowCredentials(); // No longer sending cookies from frontend
+        });
 });
 // --- END CORS Configuration ---
-
-builder.Services.AddAntiforgery(options =>
-{
-    options.HeaderName = "X-XSRF-TOKEN"; // The header name Angular expects by default
-    options.Cookie.Name = "XSRF-TOKEN";  // The cookie name Angular expects by default
-    options.Cookie.HttpOnly = false;     // Must be false so JavaScript can read it
-    options.Cookie.SecurePolicy = CookieSecurePolicy.Always; // Only send over HTTPS
-    options.Cookie.SameSite = SameSiteMode.Lax; // Match SameSite of access_token cookie
-});
 
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
@@ -107,11 +93,7 @@ if (!string.IsNullOrEmpty(connectionString))
     MigrationManager.ApplyMigrations(connectionString);
 }
 
-app.UseAntiforgery();
-
 // --- START CORS Middleware Usage ---
-// Use the CORS policy. This must be placed after UseRouting() (implicitly handled by MapControllers)
-// and before UseAuthentication() and UseAuthorization().
 app.UseCors(MyAllowSpecificOrigins);
 // --- END CORS Middleware Usage ---
 

@@ -1,13 +1,8 @@
 // assetgaze-backend/src/Assetgaze.Backend/Features/Users/AuthController.cs
-// (Integrate these new methods into your existing AuthController)
 
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Antiforgery;
-using Microsoft.AspNetCore.Http;
-using System.Security.Claims;
 using Assetgaze.Backend.Features.Users.DTOs;
-using Microsoft.Extensions.Logging; // Added for ILogger
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 
 namespace Assetgaze.Backend.Features.Users;
 
@@ -16,14 +11,13 @@ namespace Assetgaze.Backend.Features.Users;
 public class AuthController : Controller
 {
     private readonly IAuthService _authService;
-    private readonly IAntiforgery _antiforgery;
-    private readonly ILogger<AuthController> _logger; // Added ILogger
+    // Removed: private readonly IAntiforgery _antiforgery; // No longer needed
+    private readonly ILogger<AuthController> _logger;
 
-    public AuthController(IAuthService authService, IAntiforgery antiforgery, ILogger<AuthController> logger) // Inject ILogger
+    public AuthController(IAuthService authService, ILogger<AuthController> logger) // Removed IAntiforgery from constructor
     {
         _authService = authService;
-        _antiforgery = antiforgery;
-        _logger = logger; // Assign logger
+        _logger = logger;
     }
     
     [HttpPost("register")]
@@ -50,73 +44,36 @@ public class AuthController : Controller
             return Unauthorized("Invalid email or password.");
         }
 
-        Response.Cookies.Append("access_token", token, new CookieOptions
-        {
-            HttpOnly = true,
-            Secure = true, // Ensure this is true for HTTPS
-            SameSite = SameSiteMode.Lax,
-            Expires = DateTime.UtcNow.AddMinutes(30) // Access token expiration
-        });
-
-        var antiforgeryToken = _antiforgery.GetAndStoreTokens(HttpContext).RequestToken;
-        
-        // --- LOGGING ---
-        _logger.LogInformation("Login: Generated Anti-Forgery Token: {AntiforgeryToken}", antiforgeryToken);
-        // --- END LOGGING ---
-
-        Response.Cookies.Append("XSRF-TOKEN", antiforgeryToken!, new CookieOptions
-        {
-            HttpOnly = false,
-            Secure = true,
-            SameSite = SameSiteMode.Lax,
-            Expires = DateTime.UtcNow.AddMinutes(30)
-        });
-        
-        return Ok(new LoginResponse { CsrfToken = antiforgeryToken! });
+        // --- SIMPLIFIED TOKEN HANDLING ---
+        _logger.LogInformation("Login: Generated JWT Token: {JwtToken}", token); // Log the token
+        return Ok(new LoginResponse { Token = token });
+        // --- END SIMPLIFIED TOKEN HANDLING ---
     }
 
     [HttpGet("status")]
-    [Authorize]
+    [Authorize] 
     public IActionResult GetAuthStatus()
     {
+        _logger.LogInformation("Status: User is authenticated.");
         return Ok(new { isAuthenticated = true, message = "User is authenticated." });
     }
 
     [HttpPost("logout")]
-    [Authorize]
+    [Authorize] 
     public IActionResult Logout()
     {
-        Response.Cookies.Append("access_token", "", new CookieOptions
-        {
-            HttpOnly = true,
-            Secure = true,
-            SameSite = SameSiteMode.Lax,
-            Expires = DateTime.UtcNow.AddDays(-1)
-        });
-
-        Response.Cookies.Append("XSRF-TOKEN", "", new CookieOptions
-        {
-            HttpOnly = false,
-            Secure = true,
-            SameSite = SameSiteMode.Lax,
-            Expires = DateTime.UtcNow.AddDays(-1)
-        });
-
+        // --- SIMPLIFIED LOGOUT ---
+        // No longer clearing specific cookies. Frontend will clear its token.
+        _logger.LogInformation("Logout: User logged out.");
         return Ok(new { message = "Logged out successfully." });
+        // --- END SIMPLIFIED LOGOUT ---
     }
 
     [HttpPost("protected-data")]
     [Authorize]
-    [ValidateAntiForgeryToken]
     public IActionResult PostProtectedData([FromBody] object data)
     {
-        // --- LOGGING ---
-        var requestToken = HttpContext.Request.Headers["X-XSRF-TOKEN"].FirstOrDefault();
-        var cookieToken = HttpContext.Request.Cookies["XSRF-TOKEN"];
-        _logger.LogInformation("ProtectedData: Request Header X-XSRF-TOKEN: {RequestToken}", requestToken);
-        _logger.LogInformation("ProtectedData: Request Cookie XSRF-TOKEN: {CookieToken}", cookieToken);
-        // --- END LOGGING ---
-
-        return Ok(new { message = "Data received and authorized with CSRF!", receivedData = data });
+        _logger.LogInformation("ProtectedData: Data received and authorized.");
+        return Ok(new { message = "Data received and authorized!", receivedData = data });
     }
 }

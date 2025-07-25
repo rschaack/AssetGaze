@@ -1,14 +1,14 @@
+// assetgaze-backend/src/Assetgaze.Backend/Features/Users/DTOs/LoginResponse.cs
+// This DTO will now return the JWT directly.
+
 namespace Assetgaze.Backend.Features.Users.DTOs
 {
     public class LoginResponse
     {
-        // The actual JWT (access token) will be sent in an HTTP-only cookie.
-        // This property will now hold the Anti-Forgery Token (CSRF token)
-        // that the frontend needs to send back on subsequent requests.
-        public string CsrfToken { get; set; } = string.Empty;
+        // The actual JWT (access token) will now be returned in the response body.
+        public string Token { get; set; } = string.Empty;
 
-        // You might include other non-sensitive user data here if needed for the frontend,
-        // but avoid the JWT itself.
+        // You might include other non-sensitive user data here if needed for the frontend.
         // public string UserId { get; set; }
         // public string UserName { get; set; }
     }

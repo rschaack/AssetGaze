@@ -1,0 +1,31 @@
+<app-header></app-header>
+<div class="page-background">
+  <div class="card max-w-2xl mx-auto">
+    <h1 class="text-3xl font-bold mb-6">{{ pageTitle }}</h1>
+
+    <form (ngSubmit)="onSubmit()" #transactionForm="ngForm" class="space-y-4">
+
+      <div>
+        <label for="isin" class="block text-sm font-medium">ISIN</label>
+        <input type="text" id="isin" name="isin" [(ngModel)]="transaction.isin" required class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3">
+      </div>
+
+      <div>
+        <label for="quantity" class="block text-sm font-medium">Quantity</label>
+        <input type="number" id="quantity" name="quantity" [(ngModel)]="transaction.quantity" required class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3">
+      </div>
+
+      <div>
+        <label for="consideration" class="block text-sm font-medium">Consideration</label>
+        <input type="number" id="consideration" name="consideration" [(ngModel)]="transaction.consideration" required class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3">
+      </div>
+
+      <div class="flex justify-end space-x-4 pt-4">
+        <a routerLink="/transactions" class="btn btn-secondary !bg-gray-500 text-gray-800">Cancel</a>
+        <button type="submit" [disabled]="!transactionForm.form.valid" class="btn btn-primary">
+          {{ isEditMode ? 'Update Transaction' : 'Save Transaction' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

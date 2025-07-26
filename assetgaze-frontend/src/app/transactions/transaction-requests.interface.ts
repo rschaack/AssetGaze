@@ -1,9 +1,5 @@
-// assetgaze-frontend/src/app/shared/interfaces/transaction.interface.ts
-
-// Define the Transaction interface to match your backend DTO
-// Ensure consistency with C# Guid (string in TS), DateTime (string in TS), decimal (number in TS).
-export interface Transaction { // <--- Export it
-  id: string; // Guid from C# maps to string in TS
+// This should mirror your backend DTOs
+export interface CreateTransactionRequest {
   transactionType: string; // Enum from C# maps to string in TS
   brokerId: string; // Guid from C# maps to string in TS
   brokerDealReference?: string;
@@ -19,4 +15,8 @@ export interface Transaction { // <--- Export it
   stampDuty?: number; // Optional decimal from C# maps to number in TS
   fxCharge?: number; // Optional decimal from C# maps to number in TS
   accruedInterest?: number; // Optional decimal from C# maps to number in TS
+}
+
+export interface UpdateTransactionRequest extends CreateTransactionRequest {
+  // Update might have slightly different fields, but often they are the same
 }

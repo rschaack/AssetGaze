@@ -2,13 +2,12 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../auth/auth.service';
-import { Observable, catchError, of } from 'rxjs';
-import { tap } from 'rxjs/operators';
+import { Observable, catchError, of } from 'rxjs'
 import { RouterLink } from '@angular/router';
+import { tap } from 'rxjs/operators';
 import { Header } from '../header/header';
 import { Transaction } from './transaction.interface'; // <--- NEW: Import shared Transaction interface
 
-// Removed: Duplicate Transaction interface definition from here
 
 @Component({
   selector: 'app-transactions',

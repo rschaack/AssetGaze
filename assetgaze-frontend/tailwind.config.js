@@ -1,10 +1,13 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: [
-    "./src/**/*.{html,ts}", // This line is CRUCIAL for Angular templates
+    "./src/**/*.{html,ts}", // This line is essential
   ],
   theme: {
-    extend: {},
+    extend: {
+      // You can leave this empty if you define all your
+      // custom styles in styles.css, but the theme key must exist.
+    },
   },
   plugins: [],
-}
+};

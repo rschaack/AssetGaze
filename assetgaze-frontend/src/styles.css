@@ -1,1 +1,57 @@
+/* assetgaze-frontend/src/styles.css */
+
 @import "tailwindcss";
+
+@theme {
+  --color-brand-primary: #4338CA;
+  --color-brand-secondary: #22C55E;
+  --color-text-light: #ffffff;
+  --color-text-dark: #111827;
+  --color-danger: #DC2626;
+  --color-danger-hover: #B91C1C;
+}
+
+@layer components {
+  /*
+    ✅ CORRECT v4 APPROACH:
+    Nest @screen directives inside the class definition.
+  */
+  .page-background {
+    @apply min-h-screen p-4; /* Start with mobile-first base padding */
+    background-color: var(--color-brand-primary);
+    color: var(--color-text-light);
+
+    @variant sm {
+      @apply p-6; /* Override with padding for 'sm' screens and up */
+    }
+
+    @variant lg {
+      @apply p-8; /* Override with padding for 'lg' screens and up */
+    }
+  }
+
+  /* A specific layout for centering content */
+  .layout-centered {
+    @apply flex flex-col items-center justify-center;
+  }
+
+  /* --- Other component classes --- */
+
+  .btn {
+    @apply px-8 py-4 font-bold rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition duration-300 ease-in-out;
+  }
+
+  .btn-logout {
+    @apply px-4 py-2 rounded-md text-sm font-medium transition duration-150 ease-in-out;
+    background-color: var(--color-danger);
+    color: var(--color-text-light);
+  }
+  .btn-logout:hover {
+    background-color: var(--color-danger-hover);
+  }
+
+  .card {
+    @apply bg-white rounded-lg shadow-xl p-6;
+    color: var(--color-text-dark);
+  }
+}

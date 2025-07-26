@@ -1,0 +1,20 @@
+<header class="bg-gray-800 text-white p-4 shadow-md">
+  <nav class="container mx-auto flex justify-between items-center">
+    <h1 class="text-2xl font-bold">AssetGaze</h1>
+    <div class="space-x-4 flex items-center">
+      <!-- Show Dashboard and Transactions links only if authenticated -->
+      <ng-container *ngIf="isAuthenticated$ | async">
+        <a routerLink="/dashboard" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Dashboard</a>
+        <a routerLink="/transactions" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Transactions</a>
+        <button (click)="onLogout()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium transition duration-150 ease-in-out">
+          Logout
+        </button>
+      </ng-container>
+      <!-- Optional: Show Login/Register links if not authenticated -->
+      <ng-container *ngIf="!(isAuthenticated$ | async)">
+        <a routerLink="/login" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Login</a>
+        <!-- <a routerLink="/register" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Register</a> -->
+      </ng-container>
+    </div>
+  </nav>
+</header>

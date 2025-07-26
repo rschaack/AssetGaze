@@ -3,32 +3,13 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable, tap, catchError, throwError, of, map, BehaviorSubject } from 'rxjs';
 import { Router } from '@angular/router';
+import { Transaction } from '../shared/interfaces/transaction.interface'; // <--- NEW: Import shared Transaction interface
 
 interface LoginResponse {
-  token: string; // Backend returns the JWT directly
+  token: string;
 }
 
-// Define a simple interface for your Transaction DTO from the backend
-// Adjust properties to match your C# Transaction model.
-// Ensure consistency with C# Guid (string in TS), DateTime (string in TS), decimal (number in TS).
-interface Transaction {
-  id: string; // Guid from C# maps to string in TS
-  transactionType: string; // Enum from C# maps to string in TS
-  brokerId: string; // Guid from C# maps to string in TS
-  accountId: string; // Guid from C# maps to string in TS
-  taxWrapper: string; // Enum from C# maps to string in TS
-  isin: string;
-  transactionDate: string; // DateTime from C# maps to string in TS
-  quantity: number; // decimal from C# maps to number in TS
-  nativePrice: number; // decimal from C# maps to number in TS
-  localPrice: number; // decimal from C# maps to number in TS
-  consideration: number; // decimal from C# maps to number in TS
-  brokerCharge?: number; // Optional decimal from C# maps to number in TS
-  stampDuty?: number; // Optional decimal from C# maps to number in TS
-  fxCharge?: number; // Optional decimal from C# maps to number in TS
-  accruedInterest?: number; // Optional decimal from C# maps to number in TS
-  brokerDealReference?: string;
-}
+// Removed: Duplicate Transaction interface definition from here
 
 
 @Injectable({
@@ -106,12 +87,10 @@ export class AuthService {
       return throwError(() => new Error('No authentication token found.'));
     }
 
-    // Attach the JWT to the Authorization header
     const headers = new HttpHeaders({
       'Authorization': `Bearer ${token}`
     });
 
-    // Make the GET request to the transactions endpoint
     return this.http.get<Transaction[]>(this.transactionsUrl, { headers }).pipe(
       catchError(error => {
         console.error('AuthService: Failed to fetch transactions:', error);

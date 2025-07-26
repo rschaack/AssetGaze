@@ -35,7 +35,7 @@ builder.Services.AddAuthentication(options =>
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!)),
         ValidateIssuer = true,
         ValidateAudience = true,
-        ValidateLifetime = true,
+        ValidateLifetime = false,
         ValidateIssuerSigningKey = true
     };
 });
@@ -52,8 +52,8 @@ builder.Services.AddCors(options =>
             // but keeping WithOrigins is good practice.
             policy.WithOrigins("https://localhost:4200") // Your Angular frontend URL
                 .AllowAnyHeader()    // Allows all headers from the client
-                .AllowAnyMethod();   // Allows all HTTP methods (GET, POST, PUT, DELETE, etc.)
-            // Removed: .AllowCredentials(); // No longer sending cookies from frontend
+                .AllowAnyMethod()   // Allows all HTTP methods (GET, POST, PUT, DELETE, etc.)
+                .AllowCredentials(); // No longer sending cookies from frontend
         });
 });
 // --- END CORS Configuration ---

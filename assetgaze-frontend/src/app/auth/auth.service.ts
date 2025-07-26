@@ -3,7 +3,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable, tap, catchError, throwError, of, map, BehaviorSubject } from 'rxjs';
 import { Router } from '@angular/router';
-import { Transaction } from '../shared/interfaces/transaction.interface'; // <--- NEW: Import shared Transaction interface
+import { Transaction } from '../transactions/transaction.interface'; // <--- NEW: Import shared Transaction interface
 
 interface LoginResponse {
   token: string;

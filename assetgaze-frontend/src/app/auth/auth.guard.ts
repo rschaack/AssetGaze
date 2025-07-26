@@ -2,27 +2,22 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
 import { AuthService } from './auth.service';
-import { map, take } from 'rxjs/operators'; // Removed 'switchMap' as it's no longer needed
 
-export const AuthGuard: CanActivateFn = (route, state) => {
+/**
+ * A functional route guard that checks if a user is authenticated.
+ * If the user is authenticated, it allows access to the route.
+ * Otherwise, it redirects the user to the /login page.
+ */
+export const authGuard: CanActivateFn = (route, state) => {
+  // Inject the AuthService and Router directly into the function
   const authService = inject(AuthService);
   const router = inject(Router);
 
-  // Simple approach: Check client-side token presence.
-  // The ErrorInterceptor will handle redirection if a protected backend call returns 401.
+  if (authService.isAuthenticated()) {
+    return true; // ✅ User is logged in, so allow access
+  }
 
-  // Use the BehaviorSubject's current value for immediate check
-  // and then subscribe to ensure it's up-to-date.
-  return authService.isAuthenticated$.pipe(
-    take(1), // Take the current value
-    map(isAuthenticated => {
-      if (isAuthenticated) {
-        return true; // User is authenticated, allow access
-      } else {
-        // User is not authenticated, redirect to login page
-        router.navigate(['/login']);
-        return false;
-      }
-    })
-  );
+  // 🛑 User is not logged in, redirect to the login page
+  router.navigate(['/login']);
+  return false;
 };

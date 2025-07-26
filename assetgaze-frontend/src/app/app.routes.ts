@@ -2,21 +2,22 @@
 import { Routes } from '@angular/router';
 import { Login } from './login/login';
 import { Dashboard } from './dashboard/dashboard';
-import { Transactions } from './transactions/transactions'; // Import the new Transactions component
-import { AuthGuard } from './auth/auth.guard';
+import { Transactions } from './transactions/transactions';
+import { authGuard } from './auth/auth.guard'; // ⬅️ Import the new functional guard
 
 export const routes: Routes = [
   { path: 'login', component: Login },
   {
     path: 'dashboard',
     component: Dashboard,
-    canActivate: [AuthGuard]
+    canActivate: [authGuard] // 🔒 Use the functional guard
   },
   {
-    path: 'transactions', // New route for transactions
+    path: 'transactions',
     component: Transactions,
-    canActivate: [AuthGuard] // Protect the transactions route
+    canActivate: [authGuard] // 🔒 Use the functional guard
   },
-  { path: '', redirectTo: '/login', pathMatch: 'full' },
-  // Add other routes for your application here
+  // ... other routes
+  { path: '', redirectTo: '/dashboard', pathMatch: 'full' },
+  { path: '**', redirectTo: '/dashboard' }
 ];

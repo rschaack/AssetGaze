@@ -6,7 +6,7 @@ import { Observable, catchError, of } from 'rxjs';
 import { tap } from 'rxjs/operators';
 import { RouterLink } from '@angular/router';
 import { Header } from '../header/header';
-import { Transaction } from '../shared/interfaces/transaction.interface'; // <--- NEW: Import shared Transaction interface
+import { Transaction } from './transaction.interface'; // <--- NEW: Import shared Transaction interface
 
 // Removed: Duplicate Transaction interface definition from here
 

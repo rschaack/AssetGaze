@@ -1,0 +1,62 @@
+<!-- assetgaze-frontend/src/app/transactions/transactions.html -->
+<header class="bg-gray-800 text-white p-4 shadow-md">
+  <nav class="container mx-auto flex justify-between items-center">
+    <h1 class="text-2xl font-bold">AssetGaze</h1>
+    <div class="space-x-4">
+      <a routerLink="/dashboard" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Dashboard</a>
+      <a routerLink="/transactions" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Transactions</a>
+      <!-- Add a logout button/link here later -->
+    </div>
+  </nav>
+</header>
+
+
+<div class="min-h-screen bg-gray-100 p-8">
+  <div class="max-w-7xl mx-auto bg-white rounded-lg shadow-xl p-6">
+    <h1 class="text-4xl font-extrabold text-gray-900 mb-8 text-center">
+      Your Transactions
+    </h1>
+
+    <div *ngIf="loading" class="text-center text-indigo-600 text-lg font-semibold">
+      Loading transactions...
+    </div>
+
+    <div *ngIf="error" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4">
+      <strong class="font-bold">Error!</strong>
+      <span class="block sm:inline ml-2">{{ error }}</span>
+    </div>
+
+    <div *ngIf="transactions$ | async as transactions">
+      <div *ngIf="transactions.length === 0 && !loading && !error" class="text-center text-gray-600 text-lg">
+        No transactions found.
+      </div>
+
+      <div *ngIf="transactions.length > 0" class="overflow-x-auto relative shadow-md sm:rounded-lg">
+        <table class="w-full text-sm text-left text-gray-500">
+          <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+          <tr>
+            <th scope="col" class="py-3 px-6">ISIN</th>
+            <th scope="col" class="py-3 px-6">Type</th>
+            <th scope="col" class="py-3 px-6">Quantity</th>
+            <th scope="col" class="py-3 px-6">Consideration</th>
+            <th scope="col" class="py-3 px-6">Date</th>
+            <th scope="col" class="py-3 px-6">Account ID</th>
+            <!-- Add more headers as needed -->
+          </tr>
+          </thead>
+          <tbody>
+          <tr *ngFor="let transaction of transactions" class="bg-white border-b hover:bg-gray-50">
+            <td class="py-4 px-6 font-medium text-gray-900 whitespace-nowrap">{{ transaction.isin }}</td>
+            <td class="py-4 px-6">{{ transaction.transactionType }}</td>
+            <td class="py-4 px-6">{{ transaction.quantity }}</td>
+            <td class="py-4 px-6">{{ transaction.consideration | currency:'GBP':'symbol':'1.2-2' }}</td>
+            <td class="py-4 px-6">{{ formatDate(transaction.transactionDate) }}</td>
+            <td class="py-4 px-6 text-xs text-gray-400">{{ transaction.accountId }}</td>
+            <!-- Add more data cells as needed -->
+          </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,15 +1,17 @@
 // In: tests/Assetgaze.Tests/Features/Users/AuthServiceTests.cs
 
-// Ensure these using directives are correct for your project structure
-using Assetgaze.Backend.Features.Users; // For IAuthService, AuthService, IUserRepository, User
-using Assetgaze.Backend.Features.Users.DTOs; // For LoginRequest, RegisterRequest, UserAccountPermission
+using Assetgaze.Backend.Features.Users;
+using Assetgaze.Backend.Features.Users.DTOs;
 using Microsoft.Extensions.Configuration;
-using NUnit.Framework; // For TestFixture, SetUp, Test, Assert
+using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Logging; // Added for ILogger
-using Microsoft.Extensions.Logging.Abstractions; // Added for NullLogger
+using Microsoft.Extensions.Logging.Abstractions;
+using System.IdentityModel.Tokens.Jwt; // Added for JwtRegisteredClaimNames
+using System.Security.Claims; // Added for ClaimTypes
+using System.Text; // Added for Encoding
+using Microsoft.IdentityModel.Tokens; // Added for SecurityTokenDescriptor
 
 namespace Assetgaze.Backend.Tests.Features.Users;
 
@@ -21,7 +23,6 @@ public class AuthServiceTests
     private IAuthService _authService = null!;
     private const string TestPassword = "Password123!";
     private string _hashedPassword = null!;
-    // Removed Mock<ILogger<AuthService>> _mockLogger;
 
     [SetUp]
     public void SetUp()
@@ -39,11 +40,9 @@ public class AuthServiceTests
             .AddInMemoryCollection(inMemorySettings)
             .Build();
         
-        // Pass NullLogger<AuthService>.Instance as the third argument to the AuthService constructor
-        _authService = new AuthService(NullLogger<AuthService>.Instance, _fakeUserRepo, _fakeConfiguration);
+        _authService = new AuthService(_fakeUserRepo, _fakeConfiguration, NullLogger<AuthService>.Instance);
     }
 
-    // --- Registration Tests (from before) ---
     [Test]
     public async Task RegisterAsync_WithNewEmail_ShouldAddUserAndReturnTrue()
     {
@@ -61,10 +60,8 @@ public class AuthServiceTests
         var request = new RegisterRequest { Email = "existing@example.com", Password = TestPassword };
         var result = await _authService.RegisterAsync(request);
         Assert.That(result, Is.False);
-        Assert.That(_fakeUserRepo.Users.Count, Is.EqualTo(1)); // Still only one user
+        Assert.That(_fakeUserRepo.Users.Count, Is.EqualTo(1));
     }
-
-    // --- NEW LOGIN AND LOCKOUT TESTS ---
 
     [Test]
     public async Task LoginAsync_WithValidCredentials_ResetsFailedAttemptsAndReturnsToken()
@@ -75,7 +72,7 @@ public class AuthServiceTests
             Id = Guid.NewGuid(),
             Email = "test@example.com",
             PasswordHash = _hashedPassword,
-            FailedLoginAttempts = 3, // User has some previous failed attempts
+            FailedLoginAttempts = 3,
             LoginCount = 5
         };
         _fakeUserRepo.Users.Add(user);
@@ -87,9 +84,17 @@ public class AuthServiceTests
 
         // Assert
         Assert.That(token, Is.Not.Null);
-        Assert.That(user.FailedLoginAttempts, Is.EqualTo(0)); // Should be reset
-        Assert.That(user.LoginCount, Is.EqualTo(6)); // Should be incremented
+        Assert.That(user.FailedLoginAttempts, Is.EqualTo(0));
+        Assert.That(user.LoginCount, Is.EqualTo(6));
         Assert.That(user.LastLoginDate, Is.Not.Null);
+
+        // Verify basic claims are present (no longer checking account_permission)
+        var tokenHandler = new JwtSecurityTokenHandler();
+        var jwtSecurityToken = tokenHandler.ReadJwtToken(token);
+        Assert.That(jwtSecurityToken.Claims.Any(c => c.Type == JwtRegisteredClaimNames.Sub && c.Value == user.Id.ToString()), Is.True);
+        Assert.That(jwtSecurityToken.Claims.Any(c => c.Type == JwtRegisteredClaimNames.Email && c.Value == user.Email), Is.True);
+        Assert.That(jwtSecurityToken.Claims.Any(c => c.Type == JwtRegisteredClaimNames.Jti), Is.True);
+        // Assert.That(jwtSecurityToken.Claims.Any(c => c.Type == "account_permission"), Is.False); // Optionally assert no account claims
     }
 
     [Test]
@@ -105,8 +110,8 @@ public class AuthServiceTests
 
         // Assert
         Assert.That(token, Is.Null);
-        Assert.That(user.FailedLoginAttempts, Is.EqualTo(3)); // Should be incremented
-        Assert.That(user.LockoutEndDateUtc, Is.Null); // Should not be locked yet
+        Assert.That(user.FailedLoginAttempts, Is.EqualTo(3));
+        Assert.That(user.LockoutEndDateUtc, Is.Null);
     }
 
     [Test]
@@ -124,7 +129,7 @@ public class AuthServiceTests
         Assert.That(token, Is.Null);
         Assert.That(user.FailedLoginAttempts, Is.EqualTo(5));
         Assert.That(user.LockoutEndDateUtc, Is.Not.Null);
-        Assert.That(user.LockoutEndDateUtc, Is.GreaterThan(DateTime.UtcNow.AddMinutes(14))); // Check it's set for ~15 mins
+        Assert.That(user.LockoutEndDateUtc, Is.GreaterThan(DateTime.UtcNow.AddMinutes(14)));
     }
 
     [Test]
@@ -136,15 +141,18 @@ public class AuthServiceTests
             Id = Guid.NewGuid(),
             Email = "test@example.com",
             PasswordHash = _hashedPassword,
-            LockoutEndDateUtc = DateTime.UtcNow.AddMinutes(15) // Account is locked
+            LockoutEndDateUtc = DateTime.UtcNow.AddMinutes(15)
         };
         _fakeUserRepo.Users.Add(user);
-        var request = new LoginRequest { Email = "test@example.com", Password = TestPassword }; // Using correct password
+        var request = new LoginRequest { Email = "test@example.com", Password = TestPassword };
 
         // Act
         var token = await _authService.LoginAsync(request);
 
         // Assert
-        Assert.That(token, Is.Null); // Login should fail because the account is locked
+        Assert.That(token, Is.Null);
     }
+
+    // Removed: GenerateTestJwtToken helper as it's no longer used by AuthServiceTests directly for token generation logic.
+    // If you need a test JWT for controller tests, keep it in that test file.
 }

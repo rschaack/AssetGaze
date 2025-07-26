@@ -58,6 +58,17 @@ builder.Services.AddCors(options =>
 });
 // --- END CORS Configuration ---
 
+// Add Authorization services
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("HasAccountPermission", policy =>
+        policy.Requirements.Add(new HasAccountPermissionRequirement()));
+});
+
+// Register the custom handler as a singleton
+builder.Services.AddSingleton<IAuthorizationHandler, HasAccountPermissionHandler>();
+
+
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {

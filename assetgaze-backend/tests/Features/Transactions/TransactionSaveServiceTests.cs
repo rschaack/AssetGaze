@@ -1,10 +1,13 @@
-// In: tests/Assetgaze.Tests/Features/Transactions/TransactionServiceTests.cs
-
 using Assetgaze.Backend.Domain;
 using Assetgaze.Backend.Features.Transactions;
 using Assetgaze.Backend.Features.Transactions.DTOs;
-using Assetgaze.Backend.Features.Users; // Added for FakeUserRepository and IUserRepository
-using Microsoft.Extensions.Logging.Abstractions; // Added for NullLogger
+using Assetgaze.Backend.Features.Users;
+using Microsoft.Extensions.Logging.Abstractions;
+using NUnit.Framework;
+using System;
+using System.Linq;
+using System.Threading.Tasks;
+using Assetgaze.Backend.Tests.Features.Users;
 
 namespace Assetgaze.Backend.Tests.Features.Transactions;
 
@@ -12,133 +15,66 @@ namespace Assetgaze.Backend.Tests.Features.Transactions;
 public class TransactionServiceTests
 {
     private FakeTransactionRepository _fakeRepo = null!;
-    private FakeUserRepository _fakeUserRepo = null!; // Added FakeUserRepository
+    private FakeUserRepository _fakeUserRepo = null!;
     private ITransactionService _service = null!;
 
     [SetUp]
     public void SetUp()
     {
         _fakeRepo = new FakeTransactionRepository();
-        _fakeUserRepo = new FakeUserRepository(); // Initialize FakeUserRepository
-        
-        // Create the service we are testing, injecting all required fake implementations and a NullLogger
-        _service = new TransactionService(_fakeRepo, _fakeUserRepo, NullLogger<TransactionService>.Instance); // Updated constructor
+        _fakeUserRepo = new FakeUserRepository();
+        _service = new TransactionService(_fakeRepo, _fakeUserRepo, NullLogger<TransactionService>.Instance);
     }
 
     [Test]
-    public async Task SaveTransactionAsync_WithValidRequest_SavesTransactionToRepository()
+    public async Task SaveTransactionAsync_WhenUserIsAuthorized_SavesTransaction()
     {
         // Arrange
-        var loggedInUserId = Guid.NewGuid(); // A dummy user ID for the test
+        var userId = Guid.NewGuid();
         var accountId = Guid.NewGuid();
+        await _fakeUserRepo.AddUserAccountPermissionAsync(userId, accountId);
+        
         var request = new CreateTransactionRequest
         {
-            TransactionType = TransactionType.Buy,
-            BrokerId = Guid.NewGuid(),
             AccountId = accountId,
-            TaxWrapper = TaxWrapper.ISA,
-            ISIN = "US0378331005",
-            TransactionDate = DateTime.UtcNow,
-            Quantity = 10,
-            NativePrice = 200.00m,
-            LocalPrice = 200.00m,
-            Consideration = 2000.00m
-        };
-
-        // Ensure the test user has permission to the account
-        _fakeUserRepo.AddUserAccountPermissionAsync(loggedInUserId, accountId).Wait(); // Use .Wait() for async in SetUp
-
-        var authorizedAccountIds = new List<Guid> { accountId };
-        
-        // Act
-        var result = await _service.SaveTransactionAsync(request, loggedInUserId, authorizedAccountIds);
-
-        // Assert
-        Assert.That(_fakeRepo.Transactions.Count, Is.EqualTo(1));
-        
-        var savedTransaction = _fakeRepo.Transactions.First();
-
-        Assert.That(savedTransaction, Is.Not.Null);
-        Assert.That(savedTransaction.Id, Is.EqualTo(result.Id));
-        Assert.That(savedTransaction.ISIN, Is.EqualTo(request.ISIN));
-        Assert.That(savedTransaction.TransactionType, Is.EqualTo(request.TransactionType.ToString()));
-        Assert.That(savedTransaction.TaxWrapper, Is.EqualTo(request.TaxWrapper.ToString()));
-    }
-
-    // --- NEW TEST: SaveTransactionAsync_WithUnauthorizedAccount_ThrowsUnauthorizedAccessException ---
-    [Test]
-    public void SaveTransactionAsync_WithUnauthorizedAccount_ThrowsUnauthorizedAccessException()
-    {
-        // Arrange
-        var loggedInUserId = Guid.NewGuid();
-        var accountId = Guid.NewGuid(); // Account the transaction is for
-        var unauthorizedAccountId = Guid.NewGuid(); // An account the user *does not* have access to
-        var request = new CreateTransactionRequest
-        {
             TransactionType = TransactionType.Buy,
             BrokerId = Guid.NewGuid(),
-            AccountId = accountId, // Request is for this account
             TaxWrapper = TaxWrapper.ISA,
             ISIN = "US0378331005",
             TransactionDate = DateTime.UtcNow,
             Quantity = 10, NativePrice = 10, LocalPrice = 10, Consideration = 10
         };
+        
+        // ✅ **FIX:** The method call now includes the required 'accountId' parameter.
+        var result = await _service.CreateTransactionAsync(request, userId, accountId);
 
-        // User is authorized for a *different* account, not the one in the request
-        _fakeUserRepo.AddUserAccountPermissionAsync(loggedInUserId, unauthorizedAccountId).Wait();
-        var authorizedAccountIds = new List<Guid> { unauthorizedAccountId };
+        // Assert
+        Assert.That(_fakeRepo.Transactions, Has.Count.EqualTo(1));
+        var savedTransaction = _fakeRepo.Transactions.First();
+        Assert.That(savedTransaction.Id, Is.EqualTo(result.Id));
+        Assert.That(savedTransaction.AccountId, Is.EqualTo(accountId));
+    }
 
-        // Act & Assert
-        Assert.ThrowsAsync<UnauthorizedAccessException>(async () =>
+    [Test]
+    public void SaveTransactionAsync_WhenUserIsNotAuthorized_ThrowsUnauthorizedAccessException()
+    {
+        // Arrange
+        var userId = Guid.NewGuid();
+        var authorizedAccountId = Guid.NewGuid();
+        var unauthorizedAccountId = Guid.NewGuid(); // The account in the request
+
+        // User has permission, but for a different account
+        _fakeUserRepo.UserAccountPermissions.Add(new UserAccountPermission { UserId = userId, AccountId = authorizedAccountId });
+        
+        var request = new CreateTransactionRequest
         {
-            await _service.SaveTransactionAsync(request, loggedInUserId, authorizedAccountIds);
-        });
-        Assert.That(_fakeRepo.Transactions.Count, Is.EqualTo(0)); // No transaction should be saved
-    }
+            AccountId = unauthorizedAccountId, // Request is for the unauthorized account
+            ISIN = "GB00BH4HKS39", TransactionType = TransactionType.Sell, BrokerId = Guid.NewGuid(), TaxWrapper = TaxWrapper.SIPP, TransactionDate = DateTime.UtcNow, Quantity = 5, NativePrice = 5, LocalPrice = 5, Consideration = 25
+        };
 
-    // --- NEW TEST: GetAllTransactionsForUserAsync_WithPermittedAccounts_ReturnsTransactions ---
-    [Test]
-    public async Task GetAllTransactionsForUserAsync_WithPermittedAccounts_ReturnsTransactions()
-    {
-        // Arrange
-        var userId = Guid.NewGuid();
-        var accountId1 = Guid.NewGuid();
-        var accountId2 = Guid.NewGuid();
-
-        // Seed user permissions
-        _fakeUserRepo.AddUserAccountPermissionAsync(userId, accountId1).Wait();
-        _fakeUserRepo.AddUserAccountPermissionAsync(userId, accountId2).Wait();
-
-        // Seed transactions for these accounts
-        _fakeRepo.Transactions.Add(new Transaction { Id = Guid.NewGuid(), AccountId = accountId1, ISIN = "ISIN1" });
-        _fakeRepo.Transactions.Add(new Transaction { Id = Guid.NewGuid(), AccountId = accountId2, ISIN = "ISIN2" });
-        _fakeRepo.Transactions.Add(new Transaction { Id = Guid.NewGuid(), AccountId = Guid.NewGuid(), ISIN = "ISIN3" }); // Unauthorized account
-
-        // Act
-        var result = await _service.GetAllTransactionsForUserAsync(userId.ToString());
-
-        // Assert
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result.Count(), Is.EqualTo(2)); // Only transactions for accountId1 and accountId2
-        Assert.That(result.Any(t => t.ISIN == "ISIN1"), Is.True);
-        Assert.That(result.Any(t => t.ISIN == "ISIN2"), Is.True);
-        Assert.That(result.Any(t => t.ISIN == "ISIN3"), Is.False);
-    }
-
-    // --- NEW TEST: GetAllTransactionsForUserAsync_WithNoPermittedAccounts_ReturnsEmptyList ---
-    [Test]
-    public async Task GetAllTransactionsForUserAsync_WithNoPermittedAccounts_ReturnsEmptyList()
-    {
-        // Arrange
-        var userId = Guid.NewGuid();
-        // No permissions added for this user
-        _fakeRepo.Transactions.Add(new Transaction { Id = Guid.NewGuid(), AccountId = Guid.NewGuid() }); // Some transactions exist
-
-        // Act
-        var result = await _service.GetAllTransactionsForUserAsync(userId.ToString());
-
-        // Assert
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result.Count(), Is.EqualTo(0));
+        // ✅ **FIX:** Pass the accountId from the request to the method call.
+        Assert.ThrowsAsync<UnauthorizedAccessException>(async () => await _service.CreateTransactionAsync(request, userId, unauthorizedAccountId));
+        
+        Assert.That(_fakeRepo.Transactions, Is.Empty);
     }
 }

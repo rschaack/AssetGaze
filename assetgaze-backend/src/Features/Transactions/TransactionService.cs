@@ -24,7 +24,7 @@ namespace Assetgaze.Backend.Features.Transactions
             _logger = logger;
         }
 
-        public async Task<Transaction> SaveTransactionAsync(CreateTransactionRequest request, Guid userId, Guid accountId) // Simplified signature
+        public async Task<Transaction> CreateTransactionAsync(CreateTransactionRequest request, Guid userId, Guid accountId) // Simplified signature
         {
             var permittedAccountIds = await _userRepository.GetAccountIdsForUserAsync(userId);
 

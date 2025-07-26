@@ -1,10 +1,6 @@
-using Assetgaze.Backend.Features.Users.DTOs; // Assuming DTOs are in this namespace
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using System; // For Guid
+using Assetgaze.Backend.Features.Users;
 
-namespace Assetgaze.Backend.Features.Users // This namespace MUST match where IUserRepository is defined
+namespace Assetgaze.Backend.Tests.Features.Users
 {
     public class FakeUserRepository : IUserRepository
     {
@@ -25,8 +21,7 @@ namespace Assetgaze.Backend.Features.Users // This namespace MUST match where IU
 
         public Task UpdateAsync(User user)
         {
-            // For the fake, we just assume the update works.
-            // The list holds the reference, so changes to the user object are automatically "persisted".
+            // The list holds the reference, so changes are automatically "persisted".
             return Task.CompletedTask;
         }
 
@@ -41,7 +36,6 @@ namespace Assetgaze.Backend.Features.Users // This namespace MUST match where IU
 
         public Task AddUserAccountPermissionAsync(Guid userId, Guid accountId)
         {
-            // In a real fake, you might check for duplicates, but for simple tests, this is fine
             UserAccountPermissions.Add(new UserAccountPermission { UserId = userId, AccountId = accountId });
             return Task.CompletedTask;
         }

@@ -77,13 +77,15 @@ namespace Assetgaze.Backend.Features.Users
             user.LastLoginDate = DateTime.UtcNow;
             await _userRepository.UpdateAsync(user);
 
-            // Generate JWT Token without account permissions
-            var token = GenerateJwtToken(user); // Removed accountIds parameter
+            var accountIds = await _userRepository.GetAccountIdsForUserAsync(user.Id);
+
+            // 2. Pass the account IDs to the token generator
+            var token = GenerateJwtToken(user, accountIds);
             return token;
         }
     
         // Modified: GenerateJwtToken no longer takes accountIds
-        private string GenerateJwtToken(User user)
+        private string GenerateJwtToken(User user, IEnumerable<Guid> accountIds)
         {
             var tokenHandler = new JwtSecurityTokenHandler();
             var key = Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]!);
@@ -95,8 +97,8 @@ namespace Assetgaze.Backend.Features.Users
                 new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
             };
             
-            // Removed: foreach (var accountId in accountIds) { claims.Add(new Claim("account_permission", accountId.ToString())); }
-            
+            claims.AddRange(accountIds.Select(accountId => new Claim("account_permission", accountId.ToString())));
+
             var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Subject = new ClaimsIdentity(claims),

@@ -46,7 +46,7 @@ public class TransactionsController : ControllerBase
         try
         {
             // Pass userId directly. Service will perform DB lookup for authorized accounts.
-            var createdTransaction = await _transactionService.SaveTransactionAsync(request, userId, request.AccountId); // Simplified signature
+            var createdTransaction = await _transactionService.CreateTransactionAsync(request, userId, request.AccountId); // Simplified signature
             return CreatedAtAction(nameof(GetTransactionById), new { id = createdTransaction.Id }, createdTransaction);
         }
         catch (UnauthorizedAccessException ex)

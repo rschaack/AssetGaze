@@ -54,46 +54,4 @@ namespace Assetgaze.Backend.Features.Users
             await db.InsertAsync(permission);
         }
     }
-
-    // Ensure your AppDataConnection is set up to map to your database tables
-    // Example (assuming it's in Assetgaze.Backend.Domain/AppDataConnection.cs):
-    /*
-    namespace Assetgaze.Backend.Domain
-    {
-        public class AppDataConnection : LinqToDB.Data.DataConnection
-        {
-            public AppDataConnection(string connectionString) : base(ProviderName.PostgreSQL, connectionString) { }
-
-            public ITable<User> Users => GetTable<User>();
-            public ITable<UserAccountPermission> UserAccountPermissions => GetTable<UserAccountPermission>();
-            // Add other tables as needed
-            public ITable<Broker> Brokers => GetTable<Broker>();
-            public ITable<Account> Accounts => GetTable<Account>();
-            public ITable<Transaction> Transactions => GetTable<Transaction>();
-        }
-    }
-    */
-
-    // Ensure your User, UserAccountPermission, Broker, Account, Transaction models are defined
-    // and correctly mapped by LinqToDB.
-    // Example User (from FakeUserRepository immersive, ensure it's consistent across your project):
-    /*
-    public class User
-    {
-        public Guid Id { get; set; }
-        public string Email { get; set; } = string.Empty;
-        public string PasswordHash { get; set; } = string.Empty;
-        public int FailedLoginAttempts { get; set; }
-        public DateTime? LockoutEndDateUtc { get; set; }
-        public int LoginCount { get; set; }
-        public DateTime? LastLoginDate { get; set; }
-        public DateTime RegistrationDate { get; set; }
-    }
-
-    public class UserAccountPermission
-    {
-        public Guid UserId { get; set; }
-        public Guid AccountId { get; set; }
-    }
-    */
 }
